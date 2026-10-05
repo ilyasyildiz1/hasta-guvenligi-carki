@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hasta Güvenliği Çarkı</title>
+<style>
+:root{
+  --bg:#F4F2ED; --surface:#FFFFFF; --surface-2:#F8F7F3; --line:#E3DFD6;
+  --ink:#26313B; --ink-2:#5B6670; --ink-3:#8A929A;
+  --primary:#2F6F73; --primary-ink:#FFFFFF; --primary-soft:#E3EFEE;
+  --ok:#2E7D5B; --ok-soft:#E4F2EA; --bad:#B5534A; --bad-soft:#F8E6E3;
+  --s1:#A9C6DB; --s2:#B9D4B1; --s3:#EBD6AA; --s4:#DDBCC8; --s5:#C6BDDF;
+  --done:#E6E3DC; --done-ink:#ABA69C;
+  --radius:16px; --shadow:0 1px 2px rgba(38,49,59,.06),0 6px 24px rgba(38,49,59,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 48px}
+.hidden{display:none!important}
+h1{font-size:28px;line-height:1.2;margin:0 0 4px;letter-spacing:-.01em}
+h2{font-size:22px;margin:0 0 12px}
+.muted{color:var(--ink-2)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px}
+.btn{border:0;border-radius:12px;padding:12px 20px;min-height:48px;font-weight:700;font-size:16px;background:var(--primary);color:var(--primary-ink);transition:filter .15s,transform .05s}
+.btn:hover{filter:brightness(1.08)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.btn.small{min-height:38px;padding:8px 14px;font-size:14px}
+:focus-visible{outline:3px solid #E0A458;outline-offset:2px}
+kbd{display:inline-block;padding:1px 8px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;background:var(--surface-2);font-size:.85em;font-family:inherit;font-weight:700}
+
+/* ---------- Kurulum ---------- */
+.setup{max-width:720px;margin:24px auto 0}
+.setup-head{text-align:center;margin-bottom:20px}
+.setup-head .logo{width:72px;height:72px;margin:0 auto 12px}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field.full{grid-column:1/-1}
+.field label{font-weight:700;font-size:14px}
+.field .hint{font-size:13px;color:var(--ink-3)}
+.field input,.field select,.field textarea{border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:var(--surface-2);font-size:16px;width:100%}
+.field textarea{min-height:110px;resize:vertical}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--primary);outline-offset:0;background:#fff}
+.err{color:var(--bad);font-size:14px;font-weight:600;min-height:20px}
+.setup-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:8px}
+.history{margin-top:20px}
+.history h3{font-size:16px;margin:0 0 10px}
+.history-list{display:flex;flex-direction:column;gap:8px}
+.history-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);font-size:14px}
+.history-item .meta{color:var(--ink-2)}
+.history-item .acts{display:flex;gap:6px;flex-shrink:0}
+
+/* ---------- Oyun ---------- */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.topbar .title{min-width:0}
+.topbar .title .sub{font-size:14px;color:var(--ink-2)}
+.stats{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.pill{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:14px;font-weight:600;white-space:nowrap}
+.pill b{font-variant-numeric:tabular-nums}
+.pill.ok b{color:var(--ok)} .pill.bad b{color:var(--bad)}
+.game{display:grid;grid-template-columns:minmax(300px,440px) 1fr;gap:24px;align-items:start}
+.wheel-col{display:flex;flex-direction:column;align-items:center;gap:16px;position:sticky;top:16px}
+.wheel-box{width:100%;max-width:440px;aspect-ratio:1}
+.wheel-box svg{width:100%;height:100%;display:block;overflow:visible}
+.slice text{font-weight:800;font-size:21px;fill:#2B3440;pointer-events:none}
+.slice.done path{fill:var(--done)!important}
+.slice.done text{fill:var(--done-ink)}
+.slice.active path{stroke:#26313B;stroke-width:3}
+#hub{cursor:pointer}
+#hub:hover circle.hub-in{fill:#F1F7F6}
+.pointer{transform-origin:200px 22px;transition:transform .08s}
+.pointer.tick{transform:rotate(-12deg)}
+.spin-hint{font-size:15px;color:var(--ink-2);text-align:center}
+.turn{display:flex;align-items:center;gap:8px;font-size:15px;flex-wrap:wrap;justify-content:center}
+.turn select{border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--surface);font-weight:700}
+
+.qpanel{min-height:420px;display:flex;flex-direction:column}
+.qmeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.qnum{background:var(--primary-soft);color:var(--primary);font-weight:800;border-radius:999px;padding:4px 12px;font-size:14px}
+.qtopic{color:var(--ink-2);font-size:14px;font-weight:600}
+.qimg{margin:-6px 0 20px}
+.oral{align-items:flex-start}
+.oral-note{color:var(--ink-2);font-size:17px;font-weight:600;margin-bottom:4px}
+.oral .btn kbd,.oral-judge kbd{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);color:inherit;margin-left:6px}
+.oral-answer{width:100%;background:var(--ok);color:#fff;border-radius:14px;padding:16px 18px;font-size:22px;font-weight:800;line-height:1.4}
+.oral-answer .lbl{display:block;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.85;margin-bottom:2px}
+.oral-judge{display:flex;gap:12px;flex-wrap:wrap;margin-top:4px}
+.oral-judge .btn{min-width:180px}
+.btn.judge-ok{background:var(--ok)} .btn.judge-bad{background:var(--bad)}
+.btn.dim{opacity:.35}
+.oral-judge .btn:disabled:not(.dim){opacity:1}
+.qimg svg{width:170px;height:170px;display:block}
+.qtext{font-size:26px;line-height:1.4;font-weight:800;margin:4px 0 20px;color:#1F2A33}
+.opts{display:flex;flex-direction:column;gap:12px}
+.opt{display:flex;gap:14px;align-items:flex-start;text-align:left;width:100%;border:2px solid var(--line);background:var(--surface-2);border-radius:14px;padding:14px 16px;font-size:20px;font-weight:700;line-height:1.4;color:var(--ink);transition:border-color .15s,background .15s}
+.opt:hover:not(:disabled){border-color:var(--primary);background:#fff}
+.opt .key{flex-shrink:0;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#fff;border:1px solid var(--line);font-size:17px}
+.opt:disabled{cursor:default}
+.opt.correct{border-color:var(--ok);background:var(--ok);color:#fff}
+.opt.correct .key{background:rgba(255,255,255,.18);border-color:transparent;color:#fff}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft);color:#7E2F28}
+.opt.wrong .key{background:var(--bad);border-color:transparent;color:#fff}
+.opt.dim{opacity:.55}
+.feedback{margin-top:18px;border-radius:14px;padding:14px 18px;font-size:19px;font-weight:700;display:flex;gap:12px;align-items:center}
+.feedback.ok{background:var(--ok-soft);color:#1F5A40}
+.feedback.bad{background:var(--bad-soft);color:#7E2F28}
+.feedback .ico{font-size:24px}
+.next-hint{margin-top:14px;color:var(--ink-2);font-size:15px}
+.idle{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;color:var(--ink-2);padding:24px}
+.idle .big{font-size:24px;font-weight:800;color:var(--ink)}
+
+/* ---------- Rapor ---------- */
+.report-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.report-actions{display:flex;gap:8px;flex-wrap:wrap}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.kpi .lbl{font-size:13px;color:var(--ink-2);font-weight:600}
+.kpi .val{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:4px}
+.kpi .val small{font-size:15px;color:var(--ink-2);font-weight:600}
+.kpi.ok .val{color:var(--ok)} .kpi.bad .val{color:var(--bad)}
+.verdict{border-radius:14px;padding:16px 18px;margin-bottom:20px;font-size:16px;border:1px solid var(--line);background:var(--surface)}
+.verdict b{font-size:18px}
+.bar{height:12px;border-radius:999px;background:var(--bad-soft);overflow:hidden;display:flex}
+.bar span{display:block;height:100%;background:var(--ok)}
+.section{margin-bottom:20px}
+.section h2{font-size:18px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;border-radius:999px;padding:2px 10px;font-weight:700;font-size:12px;white-space:nowrap}
+.tag.ok{background:var(--ok-soft);color:var(--ok)} .tag.bad{background:var(--bad-soft);color:var(--bad)} .tag.na{background:var(--surface-2);color:var(--ink-3)}
+.table-scroll{overflow-x:auto}
+.compare{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.compare .kpi .val{font-size:26px}
+.focus-list{margin:0;padding-left:20px}
+.focus-list li{margin:4px 0}
+
+@media (max-width:900px){
+  .game{grid-template-columns:1fr}
+  .wheel-col{position:static}
+  .wheel-box{max-width:360px}
+  .qtext{font-size:22px}
+  .opt{font-size:18px}
+}
+@media (max-width:560px){
+  .form{grid-template-columns:1fr}
+  .card{padding:18px}
+  h1{font-size:23px}
+  .compare{grid-template-columns:1fr}
+}
+@media print{
+  body{background:#fff}
+  .no-print{display:none!important}
+  .card,.kpi,.verdict{box-shadow:none}
+  .wrap{padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ================= KURULUM ================= -->
+<section id="screen-setup">
+  <div class="setup">
+    <div class="setup-head">
+      <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+        <g transform="translate(50 50)">
+          <path d="M0 0 L0 -44 A44 44 0 0 1 41.8 -13.6Z" fill="#A9C6DB"/>
+          <path d="M0 0 L41.8 -13.6 A44 44 0 0 1 25.9 35.6Z" fill="#B9D4B1"/>
+          <path d="M0 0 L25.9 35.6 A44 44 0 0 1 -25.9 35.6Z" fill="#EBD6AA"/>
+          <path d="M0 0 L-25.9 35.6 A44 44 0 0 1 -41.8 -13.6Z" fill="#DDBCC8"/>
+          <path d="M0 0 L-41.8 -13.6 A44 44 0 0 1 0 -44Z" fill="#C6BDDF"/>
+          <circle r="14" fill="#fff"/><path d="M-5 0h10M0 -5v10" stroke="#2F6F73" stroke-width="4" stroke-linecap="round"/>
+        </g>
+      </svg>
+      <h1>Hasta Güvenliği Çarkı</h1>
+      <p class="muted" style="margin:0">Eğitim etkinliği ölçme oyunu · <span id="q-total">20</span> soru</p>
+    </div>
+
+    <div class="card">
+      <h2>Eğitim bilgileri</h2>
+      <form id="setup-form" class="form" novalidate>
+        <div class="field full">
+          <label for="f-title">Eğitimin adı</label>
+          <input id="f-title" value="Hasta Güvenliği Eğitimi" required>
+        </div>
+        <div class="field">
+          <label for="f-trainer">Eğitimci</label>
+          <input id="f-trainer" value="Şeyda Eğitim Hemşiresi">
+        </div>
+        <div class="field">
+          <label for="f-unit">Birim / Servis</label>
+          <input id="f-unit" placeholder="Örn. Dahiliye Servisi">
+        </div>
+        <div class="field">
+          <label for="f-date">Tarih</label>
+          <input id="f-date" type="date">
+        </div>
+        <div class="field">
+          <label for="f-type">Oturum türü</label>
+          <select id="f-type">
+            <option value="tek">Tek oturum</option>
+            <option value="on">Ön test (eğitim öncesi)</option>
+            <option value="son">Son test (eğitim sonrası)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-count">Katılımcı sayısı</label>
+          <input id="f-count" type="number" min="1" max="500" inputmode="numeric" placeholder="Örn. 12" required>
+        </div>
+        <div class="field">
+          <label for="f-target">Hedef personel sayısı <span class="muted" style="font-weight:400">(isteğe bağlı)</span></label>
+          <input id="f-target" type="number" min="1" max="5000" inputmode="numeric" placeholder="Katılım oranı için">
+        </div>
+        <div class="field full">
+          <label for="f-names">Katılımcı adları <span class="muted" style="font-weight:400">(isteğe bağlı, her satıra bir kişi)</span></label>
+          <textarea id="f-names" placeholder="Ayşe K.&#10;Mehmet T.&#10;…"></textarea>
+          <span class="hint">Ad girerseniz çark sırayla kişilere soru sorar ve raporda kişi bazlı sonuç görünür. Boş bırakırsanız grup olarak oynanır.</span>
+        </div>
+        <div class="field full"><div class="err" id="setup-err" role="alert"></div></div>
+      </form>
+      <div class="setup-actions">
+        <button class="btn" id="btn-start" type="button">Oyunu başlat</button>
+      </div>
+    </div>
+
+    <div class="card history hidden" id="history">
+      <h3>Kayıtlı oturumlar</h3>
+      <div class="history-list" id="history-list"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= OYUN ================= -->
+<section id="screen-game" class="hidden">
+  <div class="topbar">
+    <div class="title">
+      <h1 id="g-title">Hasta Güvenliği Çarkı</h1>
+      <div class="sub" id="g-sub"></div>
+    </div>
+    <div class="stats">
+      <span class="pill">Soru <b id="s-progress">0/19</b></span>
+      <span class="pill ok">Doğru <b id="s-ok">0</b></span>
+      <span class="pill bad">Yanlış <b id="s-bad">0</b></span>
+      <button class="btn small ghost" id="btn-finish" type="button">Bitir ve rapor</button>
+    </div>
+  </div>
+
+  <div class="game">
+    <div class="wheel-col">
+      <div class="wheel-box">
+        <svg id="wheel" viewBox="0 0 400 400" role="img" aria-label="1'den 19'a numaralı soru çarkı">
+          <circle cx="200" cy="200" r="192" fill="#FFFFFF" stroke="#E3DFD6" stroke-width="2"/>
+          <g id="disc"></g>
+          <g id="hub" role="button" tabindex="0" aria-label="Çarkı çevir">
+            <circle cx="200" cy="200" r="46" fill="#26313B" opacity=".08"/>
+            <circle class="hub-in" cx="200" cy="200" r="42" fill="#FFFFFF" stroke="#E3DFD6" stroke-width="2"/>
+            <text x="200" y="207" text-anchor="middle" font-size="17" font-weight="800" fill="#2F6F73" style="letter-spacing:.06em">ÇEVİR</text>
+          </g>
+          <g class="pointer" id="pointer">
+            <path d="M184 10 H216 L200 44 Z" fill="#26313B" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+            <circle cx="200" cy="18" r="4" fill="#FFFFFF"/>
+          </g>
+        </svg>
+      </div>
+      <div class="turn hidden" id="turn">
+        <span>Sıradaki:</span>
+        <select id="turn-select" aria-label="Soruyu cevaplayacak kişi"></select>
+      </div>
+      <button class="btn" id="btn-spin" type="button" style="min-width:220px">Çarkı çevir</button>
+      <div class="spin-hint"><kbd>Boşluk</kbd> çevirir · <kbd>A</kbd>–<kbd>D</kbd> veya <kbd>1</kbd>–<kbd>4</kbd> şık seçer · sözlü sorularda <kbd>D</kbd> doğru, <kbd>Y</kbd> bilemedi</div>
+    </div>
+
+    <div class="card qpanel" id="qpanel" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- ================= RAPOR ================= -->
+<section id="screen-report" class="hidden">
+  <div class="report-head">
+    <div>
+      <h1>Eğitim etkinliği raporu</h1>
+      <div class="muted" id="r-sub"></div>
+    </div>
+    <div class="report-actions no-print">
+      <button class="btn small ghost" id="btn-back" type="button">Oyuna dön</button>
+      <button class="btn small ghost" id="btn-csv" type="button">Excel'e aktar (CSV)</button>
+      <button class="btn small ghost" id="btn-print" type="button">Yazdır / PDF</button>
+      <button class="btn small" id="btn-new" type="button">Yeni oturum</button>
+    </div>
+  </div>
+  <div id="r-body"></div>
+</section>
+
+</div>
+
+<script>
+(()=>{
+/* ================= SORULAR ================= */
+const QS=[
+{t:'Hasta güvenliği hedefleri',q:'Aşağıdakilerden hangisi hasta güvenliği hedeflerindendir?',o:['Hastayı doğru tanımlamak, doğru bölge cerrahisinin geliştirilmesi','Etkili iletişimin sağlanması','Hastane enfeksiyonlarının ve düşmelerin önlenmesi','Hepsi'],a:3},
+{t:'Kimlik doğrulamada 3 tanımlayıcı',q:'Kimlik doğrulamada standart 3 tanımlayıcı hangi şıkta doğru belirtilmiştir?',o:['Ad-soyad, hasta numarası, doğum tarihi (gün-ay-yıl)','Ad-soyad, TC kimlik numarası, doğum tarihi','Ad-soyad, TC kimlik numarası, hasta numarası','Ad-soyad, hasta numarası, cinsiyet'],a:0},
+{t:'Kırmızı kol bilekliği ve sarı etiket',q:'Kırmızı kol bilekliğine sarı etiket yapıştırılmış bir hasta için aşağıdakilerden hangisi doğrudur?',o:['Allerjisi ve düşme riski var','Normal hasta, allerjisi var','Allerjisi olan hasta, bulaşıcı hastalığı var','Normal hasta, bulaşıcı hastalığı var'],a:0},
+{t:'Zor entübasyon',q:'Zor entübasyon beklenen hastalarda hangi renk kol bilekliği kullanılır?',open:true,text:'Lacivert kol bilekliği'},
+{t:'Kırmızı Kod',q:'Yapılan anonsta "Kırmızı Kod" deniyorsa hangi durum için çağrı yapılmaktadır?',o:['Yangın alarmı','Çocuk kaçırma','Çocuk acil tıbbi müdahale','Kimyasal acil durum'],a:0},
+{t:'Mavi Kod',q:'Mavi Kod ne demektir?',open:true,text:'Tıbbi acil yardım'},
+{t:'Ramak kala',q:'İlacın yanlış doz uygulanmasının veya yanlış hastaya uygulanmasının son anda fark edilip önlenmesi hangi güvenlik bildirimi kapsamındadır?',o:['Beklenmeyen olay (Sentinel event)','İstenmeyen olay (Adverse event)','Ramak kala','Şüpheli olay'],a:2},
+{t:'Çocuk kaçırma – Pembe Kod',q:'Serviste yatan çocuk hastanızın yakını telaşla çocuğunu bulamadığını belirtiyor. Hangi acil durum kodu verilir?',o:['Mavi','Sarı','Pembe','Beyaz'],a:2},
+{t:'Mor kol bilekliği',q:'Tek koldan işlem yapılması gereken hastalarda, uygulama yapılmaması gereken kola hangi renk "Bu Koldan Uygulama Yapmayınız" bilekliği takılır?',o:['Kırmızı','Sarı','Mor','Lacivert'],a:2},
+{t:'Panik değer',q:'Panik değer ne demektir?',o:['Normal sınırlar içindeki test sonucu','Hastanın yaşamını tehdit edebilecek düzeyde düşük veya yüksek test sonucu','Tekrarlanması gereken hatalı numune sonucu','Hekimin istemediği test sonucu'],a:1},
+{t:'Düşme riski değerlendirme sıklığı',q:'Düşme riski değerlendirmesinde puanlamaya göre değerlendirme sıklığı nasıldır?',o:['0–9: günde 2 kez, 10 ve üzeri: 24 saatte bir','0–9: 24 saatte bir, 10 ve üzeri: günde 2 kez','Her hasta günde 1 kez','Sadece yüksek riskli hastalar'],a:1},
+{t:'Düşme riski değerlendirmesi yapılmayan hastalar',q:'Düşme riski değerlendirmesi hangi hastalarda yapılmaz?',o:['4 aylık ve üzeri bebeklerde','Düşme öyküsü olan hastalarda','0–3 aylık bebeklerde, klinik beyin ölümü tanısı konmuş ve ağır/derin sedasyon alan hastalarda','Tüm hastalarda'],a:2},
+{t:'Düşme riski yüksek hasta görseli',q:'Görsel neyi ifade etmektedir?',img:'fall',o:['Basınç yarası riski','Düşme riski / düşme riski yüksek hasta','İzolasyon gereken hasta','Alerjik hasta'],a:1},
+{t:'Mavi Kod yaş grupları',q:'Mavi Kod uygulamasında hasta yaş gruplarına göre doğru eşleştirme hangisidir?',o:['Mavi Kod 1: 0–16 / Mavi Kod 2: 16 yaş ve üzeri','Mavi Kod 1: 16 yaş ve üzeri / Mavi Kod 2: 0 ay–16 yaş','Mavi Kod 1: 18 yaş ve üzeri / Mavi Kod 2: 0–18 yaş','Tüm hastalar için aynıdır'],a:1},
+{t:'Mor Bebek',q:'Kullanılan "Mor Bebek" uygulaması neyi ifade eder?',o:['Alerji riski','Düşme riski','Bebek veya çocuk kaçırma riski/eylemi','İzolasyon'],a:2},
+{t:'Nöbet teslimi ve hasta mahremiyeti',q:'Yatan hasta katlarında nöbet teslimi hasta mahremiyeti açısından nasıl yapılmalıdır?',o:['Tüm nöbet teslimi hasta odasında','Tüm nöbet teslimi koridorda','Öncelikle hemşire bankosunda, ardından gerekli durumlarda hasta odalarında','Sadece telefonla'],a:2},
+{t:'El hijyeni',q:'Aşağıdakilerden hangisi El Hijyeni 5 Endikasyon kuralı içinde yer almaz?',o:['Hasta ile temas öncesi','Aseptik işlem öncesi','Eldiven çıkardıktan 2 saat sonra','Hasta çevresi ile temas sonrası'],a:2},
+{t:'Ameliyat bölgesi işaretleme',q:'Ameliyat bölgesinin doğru işaretlenmesi ile ilgili hangisi doğrudur?',o:['X işareti konularak','Yalnızca hemşire tarafından','Hekim tarafından silinmeyen marker ile A harfi yuvarlak içine alınarak','Ameliyat başladıktan sonra'],a:2},
+{t:'Kol bilekliği renkleri – yanlış ifade',q:'Aşağıdaki ifadelerden hangisi yanlıştır?',o:['Normal hastalar için beyaz kol bandı takılır.','Alerjik hastalar için kırmızı kol bandı kullanılır.','İzolasyonda olan hastalar için mevcut kol bandına kırmızı etiket yapıştırılır.','Yenidoğan kız bebek ve annesine pembe kol bandı takılır.'],a:2},
+{t:'Kol bilekliği takılan bölümler',q:'Aşağıdakilerden hangisi kol bilekliği takılan bölümlerden değildir?',o:['Acil servis müşahede hastaları','Tüm yatan hastalar','Doğumhane hastaları','Ayaktan hastalar'],a:3}
+];
+const IMGS={
+fall:`<svg viewBox="0 0 220 220" role="img" aria-label="Kayarak düşen insan figürü bulunan yeşil uyarı işareti">
+  <rect x="8" y="8" width="204" height="204" rx="22" fill="#3DAE8E" stroke="#26313B" stroke-width="7"/>
+  <line x1="36" y1="176" x2="186" y2="176" stroke="#26313B" stroke-width="7" stroke-linecap="round"/>
+  <g stroke="#26313B" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M132 86 L96 124" stroke-width="20"/>
+    <path d="M96 124 L66 128 L50 152" stroke-width="13"/>
+    <path d="M96 124 L86 150 L62 162" stroke-width="13"/>
+    <path d="M124 96 L152 104 L164 84" stroke-width="10"/>
+    <path d="M118 102 L96 92 L84 72" stroke-width="10"/>
+    <path d="M36 140 q-8 12 0 24 M26 132 q-12 18 0 36" stroke-width="4" opacity=".7"/>
+    <path d="M170 60 q12 -4 18 6 M176 46 q18 -6 26 10" stroke-width="4" opacity=".7"/>
+  </g>
+  <circle cx="146" cy="66" r="15" fill="#26313B"/>
+</svg>`
+};
+const N=QS.length, STEP=360/N, LETTERS='ABCD';
+document.getElementById('q-total').textContent=N;
+const SLICE_COLORS=['var(--s1)','var(--s2)','var(--s3)','var(--s4)','var(--s5)'];
+const STORE_KEY='hgc-sessions-v1';
+const answerText=q=>q.open?q.text:LETTERS[q.a]+') '+q.o[q.a];
+const givenText=(q,a)=>q.open?(a.ok?'Sözlü – doğru bildi':'Sözlü – bilemedi'):LETTERS[a.c]+') '+q.o[a.c];
+const TYPE_LABEL={tek:'Tek oturum',on:'Ön test',son:'Son test'};
+
+/* ================= YARDIMCILAR ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+const fmtDate=d=>{if(!d)return '';const [y,m,dd]=d.split('-');return `${dd}.${m}.${y}`};
+function loadSessions(){try{return JSON.parse(localStorage.getItem(STORE_KEY))||[]}catch(e){return []}}
+function saveSessions(list){try{localStorage.setItem(STORE_KEY,JSON.stringify(list))}catch(e){}}
+function show(id){for(const s of ['setup','game','report'])$('#screen-'+s).classList.toggle('hidden',s!==id);window.scrollTo(0,0)}
+
+/* ================= DURUM ================= */
+let S=null;            // aktif oturum
+let angle=0, spinning=false, current=null, answered=false, revealed=false, turnIdx=0;
+
+/* ================= KURULUM ================= */
+$('#f-date').value=new Date().toISOString().slice(0,10);
+$('#f-names').addEventListener('input',()=>{
+  const n=parseNames().length;
+  if(n) $('#f-count').value=n;
+});
+function parseNames(){return $('#f-names').value.split('\n').map(s=>s.trim()).filter(Boolean)}
+
+$('#btn-start').addEventListener('click',startGame);
+$('#setup-form').addEventListener('submit',e=>{e.preventDefault();startGame()});
+
+function startGame(){
+  const title=$('#f-title').value.trim();
+  const count=parseInt($('#f-count').value,10);
+  const target=parseInt($('#f-target').value,10);
+  const names=parseNames();
+  const err=$('#setup-err');
+  if(!title){err.textContent='Lütfen eğitimin adını girin.';$('#f-title').focus();return}
+  if(!count||count<1){err.textContent='Lütfen eğitime katılan kişi sayısını girin.';$('#f-count').focus();return}
+  if(target && target<count){err.textContent='Hedef personel sayısı, katılımcı sayısından küçük olamaz.';$('#f-target').focus();return}
+  err.textContent='';
+  S={
+    id:Date.now().toString(36),
+    title,trainer:$('#f-trainer').value.trim(),unit:$('#f-unit').value.trim(),
+    date:$('#f-date').value,type:$('#f-type').value,
+    count,target:target||null,names,
+    answers:[],startedAt:Date.now(),finishedAt:null
+  };
+  turnIdx=0;current=null;answered=false;angle=-STEP/2;
+  buildWheel();renderTop();renderTurn();renderIdle();
+  show('game');
+  $('#btn-spin').focus();
+}
+
+function renderHistory(){
+  const list=loadSessions();
+  $('#history').classList.toggle('hidden',!list.length);
+  const box=$('#history-list');box.innerHTML='';
+  list.slice().reverse().forEach(s=>{
+    const ok=s.answers.filter(a=>a.ok).length;
+    const el=document.createElement('div');el.className='history-item';
+    el.innerHTML=`<div><b>${esc(s.title)}</b> · ${esc(TYPE_LABEL[s.type])}<div class="meta">${esc(fmtDate(s.date))}${s.unit?' · '+esc(s.unit):''} · ${s.count} katılımcı · %${pct(ok,s.answers.length)} başarı</div></div>
+      <div class="acts"><button class="btn small ghost" data-act="open">Raporu aç</button><button class="btn small ghost" data-act="del" aria-label="Sil">Sil</button></div>`;
+    el.querySelector('[data-act=open]').onclick=()=>{S=s;renderReport(false);show('report')};
+    el.querySelector('[data-act=del]').onclick=()=>{
+      if(!confirm(`"${s.title}" (${fmtDate(s.date)}) oturumu silinsin mi?`))return;
+      saveSessions(loadSessions().filter(x=>x.id!==s.id));renderHistory();
+    };
+    box.appendChild(el);
+  });
+}
+renderHistory();
+
+/* ================= ÇARK ================= */
+function pt(deg,r){const a=(deg-90)*Math.PI/180;return [200+r*Math.cos(a),200+r*Math.sin(a)]}
+function buildWheel(){
+  const disc=$('#disc');disc.innerHTML='';
+  const ns='http://www.w3.org/2000/svg';
+  const asked=new Set(S.answers.map(a=>a.q));
+  for(let i=0;i<N;i++){
+    const g=document.createElementNS(ns,'g');g.setAttribute('class','slice'+(asked.has(i)?' done':''));g.dataset.i=i;
+    const [x1,y1]=pt(i*STEP,182),[x2,y2]=pt((i+1)*STEP,182);
+    const p=document.createElementNS(ns,'path');
+    p.setAttribute('d',`M200 200 L${x1} ${y1} A182 182 0 0 1 ${x2} ${y2} Z`);
+    p.setAttribute('style',`fill:${SLICE_COLORS[i%SLICE_COLORS.length]}`);
+    p.setAttribute('stroke','#FFFFFF');p.setAttribute('stroke-width','2');
+    g.appendChild(p);
+    const mid=(i+.5)*STEP,[tx,ty]=pt(mid,150);
+    const t=document.createElementNS(ns,'text');
+    t.setAttribute('x',tx);t.setAttribute('y',ty);t.setAttribute('text-anchor','middle');t.setAttribute('dominant-baseline','central');
+    t.setAttribute('transform',`rotate(${mid} ${tx} ${ty})`);
+    t.textContent=asked.has(i)?'✓':i+1;
+    g.appendChild(t);
+    disc.appendChild(g);
+  }
+  for(let i=0;i<N;i++){const [x,y]=pt(i*STEP,182);const c=document.createElementNS(ns,'circle');c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('r',4);c.setAttribute('fill','#FFFFFF');c.setAttribute('stroke','#D6D1C6');disc.appendChild(c)}
+  draw();
+}
+function draw(){$('#disc').setAttribute('transform',`rotate(${angle} 200 200)`)}
+function indexAtPointer(a){return Math.floor((((-a)%360+360)%360)/STEP)}
+function markActive(i){document.querySelectorAll('.slice').forEach(g=>g.classList.toggle('active',+g.dataset.i===i))}
+
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function spin(){
+  if(!S||spinning)return;
+  if(current!==null&&!answered){flashHint();return}
+  const asked=new Set(S.answers.map(a=>a.q));
+  const left=[...Array(N).keys()].filter(i=>!asked.has(i));
+  if(!left.length){finish();return}
+  const target=left[Math.floor(Math.random()*left.length)];
+  const jitter=(Math.random()-.5)*STEP*.6;
+  const want=((-(target+.5)*STEP+jitter)%360+360)%360;     // hedef açının 0–360 karşılığı
+  const start=angle, base=start-((start%360)+360)%360;
+  let end=base+360*(reduced?1:6)+want;
+  if(end-start<360*(reduced?1:5))end+=360;
+  const dur=reduced?700:5200+Math.random()*900;
+  spinning=true;current=null;answered=false;markActive(-1);
+  $('#btn-spin').disabled=true;$('#btn-finish').disabled=true;$('#turn-select').disabled=true;
+  renderSpinning();
+  let lastIdx=indexAtPointer(start);const t0=performance.now();
+  const ease=x=>1-Math.pow(1-x,4);
+  (function frame(now){
+    const k=Math.min(1,(now-t0)/dur);
+    angle=start+(end-start)*ease(k);draw();
+    const idx=indexAtPointer(angle);
+    if(idx!==lastIdx){lastIdx=idx;tick()}
+    if(k<1)requestAnimationFrame(frame);
+    else{angle=end%360;draw();spinning=false;$('#btn-spin').disabled=false;$('#btn-finish').disabled=false;$('#turn-select').disabled=false;openQuestion(target)}
+  })(t0);
+}
+function tick(){const p=$('#pointer');p.classList.add('tick');clearTimeout(tick.t);tick.t=setTimeout(()=>p.classList.remove('tick'),70)}
+$('#btn-spin').addEventListener('click',e=>{e.currentTarget.blur();spin()});
+$('#hub').addEventListener('click',spin);
+$('#hub').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();spin()}});
+
+/* ================= SIRA ================= */
+function renderTurn(){
+  const box=$('#turn'),sel=$('#turn-select');
+  box.classList.toggle('hidden',!S.names.length);
+  sel.innerHTML=S.names.map((n,i)=>`<option value="${i}">${esc(n)}</option>`).join('');
+  sel.value=String(turnIdx%Math.max(1,S.names.length));
+}
+$('#turn-select').addEventListener('change',e=>{turnIdx=+e.target.value;e.target.blur()});
+
+/* ================= SORU PANELİ ================= */
+const panel=$('#qpanel');
+function renderTop(){
+  $('#g-title').textContent=S.title;
+  $('#g-sub').textContent=[S.trainer,S.unit,fmtDate(S.date),TYPE_LABEL[S.type],S.count+' katılımcı'].filter(Boolean).join(' · ');
+  const ok=S.answers.filter(a=>a.ok).length;
+  $('#s-progress').textContent=`${S.answers.length}/${N}`;
+  $('#s-ok').textContent=ok;$('#s-bad').textContent=S.answers.length-ok;
+  $('#btn-spin').textContent=S.answers.length>=N?'Raporu gör':'Çarkı çevir';
+}
+function renderIdle(){
+  const who=S.names.length?`<div>Sıradaki katılımcı: <b>${esc(S.names[turnIdx%S.names.length])}</b></div>`:'';
+  panel.innerHTML=`<div class="idle"><div class="big">Hazırız!</div>${who}<div>Çarkı çevirmek için <kbd>Boşluk</kbd> tuşuna basın ya da <b>Çarkı çevir</b>'e tıklayın.</div><div>Çark kendiliğinden durur ve bir soru seçer.</div></div>`;
+}
+function renderSpinning(){
+  panel.innerHTML=`<div class="idle"><div class="big">Çark dönüyor…</div><div>Soru birazdan gelecek.</div></div>`;
+}
+function openQuestion(i){
+  current=i;answered=false;revealed=false;markActive(i);
+  const q=QS[i];
+  const who=S.names.length?`<span class="qtopic">· Cevaplayan: <b>${esc(S.names[turnIdx%S.names.length])}</b></span>`:'';
+  panel.innerHTML=`<div class="qmeta"><span class="qnum">Soru ${i+1}</span>${who}</div>
+    <div class="qtext">${esc(q.q)}</div>${q.img?`<div class="qimg">${IMGS[q.img]}</div>`:''}
+    ${q.open
+      ?`<div class="opts oral"><div class="oral-note">Sözlü soru – katılımcı cevabını söylesin.</div>
+          <button type="button" class="btn" id="btn-reveal">Cevabı göster <kbd>Boşluk</kbd></button></div>`
+      :`<div class="opts">${q.o.map((o,k)=>`<button type="button" class="opt" data-k="${k}"><span class="key">${LETTERS[k]}</span><span>${esc(o)}</span></button>`).join('')}</div>`}
+    <div id="fb"></div>`;
+  panel.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>choose(+b.dataset.k)));
+  const rb=$('#btn-reveal');if(rb)rb.addEventListener('click',reveal);
+}
+function reveal(){
+  const q=QS[current];if(current===null||!q.open||revealed||answered)return;
+  revealed=true;
+  panel.querySelector('.opts').innerHTML=`<div class="oral-answer"><span class="lbl">Doğru cevap</span>${esc(q.text)}</div>
+    <div class="oral-judge">
+      <button type="button" class="btn judge-ok" data-ok="1">✓ Doğru bildi <kbd>D</kbd></button>
+      <button type="button" class="btn judge-bad" data-ok="0">✗ Bilemedi <kbd>Y</kbd></button>
+    </div>`;
+  panel.querySelectorAll('[data-ok]').forEach(b=>b.addEventListener('click',()=>judge(b.dataset.ok==='1')));
+}
+function judge(ok){
+  if(current===null||!QS[current].open||!revealed||answered)return;
+  panel.querySelectorAll('[data-ok]').forEach(b=>{b.disabled=true;if((b.dataset.ok==='1')!==ok)b.classList.add('dim')});
+  record(null,ok);
+}
+function record(k,ok){
+  answered=true;
+  const who=S.names.length?S.names[turnIdx%S.names.length]:'';
+  S.answers.push({q:current,c:k,ok,who,ts:Date.now()});
+  const q=QS[current],done=S.answers.length>=N;
+  $('#fb').innerHTML=(ok
+    ?`<div class="feedback ok"><span class="ico">✓</span><span>Doğru cevap!</span></div>`
+    :`<div class="feedback bad"><span class="ico">✗</span><span>${q.open?'Bilemedi.':'Yanlış. Doğru cevap: '+esc(answerText(q))}</span></div>`)
+    +`<div class="next-hint">${done?'Tüm sorular tamamlandı. Rapor için <kbd>Boşluk</kbd> tuşuna basın.':'Sonraki soru için <kbd>Boşluk</kbd> tuşuna basın.'}</div>`;
+  if(S.names.length)turnIdx=(turnIdx+1)%S.names.length;
+  const g=document.querySelector(`.slice[data-i="${current}"]`);
+  if(g){g.classList.add('done');g.querySelector('text').textContent='✓'}
+  renderTop();renderTurn();persist();
+}
+function choose(k){
+  if(current===null||answered||spinning)return;
+  const q=QS[current];if(q.open||k>=q.o.length)return;
+  const ok=k===q.a;
+  panel.querySelectorAll('.opt').forEach(b=>{
+    const kk=+b.dataset.k;b.disabled=true;
+    if(kk===q.a)b.classList.add('correct');
+    else if(kk===k)b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+  record(k,ok);
+}
+function flashHint(){
+  const opts=panel.querySelector('.opts');if(!opts)return;
+  opts.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:260});
+}
+
+/* ================= KLAVYE ================= */
+document.addEventListener('keydown',e=>{
+  if($('#screen-game').classList.contains('hidden'))return;
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='textarea'||tag==='select')return;
+  if(e.code==='Space'||e.key===' '){
+    e.preventDefault();
+    if(e.repeat)return;
+    if(S.answers.length>=N&&(current===null||answered)){finish();return}
+    if(current!==null&&!answered&&QS[current].open&&!revealed){reveal();return}
+    spin();return;
+  }
+  const key=e.key.toLocaleLowerCase('tr');
+  if(current!==null&&!answered&&QS[current].open){
+    if(revealed&&(key==='d'||key==='1')){e.preventDefault();judge(true)}
+    else if(revealed&&(key==='y'||key==='2')){e.preventDefault();judge(false)}
+    return;
+  }
+  const map={a:0,b:1,c:2,d:3,'1':0,'2':1,'3':2,'4':3};
+  const k=map[key];
+  if(k!==undefined&&current!==null&&!answered){e.preventDefault();choose(k)}
+});
+document.addEventListener('keyup',e=>{
+  if(!$('#screen-game').classList.contains('hidden')&&(e.code==='Space'||e.key===' ')){
+    const tag=(e.target.tagName||'').toLowerCase();
+    if(tag!=='input'&&tag!=='textarea'&&tag!=='select')e.preventDefault();
+  }
+});
+
+/* ================= KAYIT ================= */
+function persist(){
+  if(!S.answers.length)return;
+  const list=loadSessions().filter(x=>x.id!==S.id);
+  list.push(S);saveSessions(list.slice(-50));
+}
+
+/* ================= RAPOR ================= */
+$('#btn-finish').addEventListener('click',()=>{
+  if(S.answers.length<N&&!confirm(`${N-S.answers.length} soru henüz sorulmadı. Oyunu bitirip raporu açmak istiyor musunuz?`))return;
+  finish();
+});
+function finish(){if(spinning)return;S.finishedAt=Date.now();persist();renderReport(true);show('report')}
+$('#btn-back').addEventListener('click',()=>{
+  buildWheel();renderTop();renderTurn();
+  if(current===null||answered)renderIdle();
+  show('game');
+});
+$('#btn-new').addEventListener('click',()=>{S=null;current=null;renderHistory();show('setup')});
+$('#btn-print').addEventListener('click',()=>window.print());
+$('#btn-csv').addEventListener('click',exportCSV);
+
+function stats(s){
+  const total=s.answers.length,ok=s.answers.filter(a=>a.ok).length;
+  return {total,ok,bad:total-ok,rate:pct(ok,total)};
+}
+function findPre(s){
+  if(s.type!=='son')return null;
+  const t=s.title.trim().toLocaleLowerCase('tr');
+  return loadSessions().filter(x=>x.type==='on'&&x.id!==s.id&&x.title.trim().toLocaleLowerCase('tr')===t&&x.answers.length)
+    .sort((a,b)=>b.startedAt-a.startedAt)[0]||null;
+}
+function verdictText(rate){
+  if(rate>=85)return ['Çok iyi','Katılımcılar konulara büyük ölçüde hâkim. Eğitim hedefine ulaşılmış görünüyor.'];
+  if(rate>=70)return ['İyi','Genel bilgi düzeyi yeterli; yanlış cevaplanan konuların kısa bir tekrarı önerilir.'];
+  if(rate>=50)return ['Geliştirilmeli','Bilgi düzeyi orta. Yanlış cevaplanan konular için tekrar eğitimi planlanmalı.'];
+  return ['Yetersiz','Bilgi düzeyi düşük. Eğitimin tekrarlanması ve yöntemin gözden geçirilmesi önerilir.'];
+}
+
+function renderReport(fromGame){
+  $('#btn-back').classList.toggle('hidden',!fromGame||S.answers.length>=N);
+  const st=stats(S);
+  $('#r-sub').textContent=[S.title,S.trainer,S.unit,fmtDate(S.date),TYPE_LABEL[S.type]].filter(Boolean).join(' · ');
+  const [vt,vd]=verdictText(st.rate);
+  const partRate=S.target?pct(S.count,S.target):null;
+  const mins=S.finishedAt?Math.max(1,Math.round((S.finishedAt-S.startedAt)/60000)):null;
+
+  let h=`<div class="kpis">
+    <div class="kpi"><div class="lbl">Katılımcı sayısı</div><div class="val">${S.count}${S.target?` <small>/ ${S.target}</small>`:''}</div></div>
+    ${partRate!==null?`<div class="kpi"><div class="lbl">Katılım oranı</div><div class="val">%${partRate}</div></div>`:''}
+    <div class="kpi"><div class="lbl">Sorulan soru</div><div class="val">${st.total} <small>/ ${N}</small></div></div>
+    <div class="kpi ok"><div class="lbl">Doğru</div><div class="val">${st.ok}</div></div>
+    <div class="kpi bad"><div class="lbl">Yanlış</div><div class="val">${st.bad}</div></div>
+    <div class="kpi"><div class="lbl">Başarı oranı</div><div class="val">%${st.rate}</div></div>
+    ${mins?`<div class="kpi"><div class="lbl">Süre</div><div class="val">${mins} <small>dk</small></div></div>`:''}
+  </div>`;
+
+  if(!st.total){
+    h+=`<div class="verdict">Henüz cevaplanmış soru yok.</div>`;
+    $('#r-body').innerHTML=h;return;
+  }
+
+  h+=`<div class="verdict"><b>Değerlendirme: ${vt}</b> — ${vd}<div class="bar" style="margin-top:12px" aria-label="Başarı oranı yüzde ${st.rate}"><span style="width:${st.rate}%"></span></div></div>`;
+
+  // Ön test / son test karşılaştırması
+  const pre=findPre(S);
+  if(pre){
+    const ps=stats(pre),diff=st.rate-ps.rate;
+    h+=`<div class="card section"><h2>Ön test – son test karşılaştırması</h2>
+      <div class="compare">
+        <div class="kpi"><div class="lbl">Ön test (${esc(fmtDate(pre.date))})</div><div class="val">%${ps.rate}</div></div>
+        <div class="kpi"><div class="lbl">Son test (${esc(fmtDate(S.date))})</div><div class="val">%${st.rate}</div></div>
+        <div class="kpi ${diff>=0?'ok':'bad'}"><div class="lbl">Değişim</div><div class="val">${diff>0?'+':''}${diff} <small>puan</small></div></div>
+      </div>
+      <p class="muted" style="margin:12px 0 0">${diff>0?'Eğitim sonrası başarı oranı arttı; eğitim etkili görünüyor.':diff===0?'Başarı oranında değişiklik yok.':'Eğitim sonrası başarı oranı düştü; içerik ve yöntem gözden geçirilmeli.'}</p></div>`;
+  }else if(S.type==='son'){
+    h+=`<div class="verdict muted">Karşılaştırma için aynı eğitim adıyla kaydedilmiş bir <b>ön test</b> oturumu bulunamadı.</div>`;
+  }
+
+  // Tekrar edilmesi gereken konular
+  const wrong=S.answers.filter(a=>!a.ok);
+  if(wrong.length){
+    h+=`<div class="card section"><h2>Tekrar edilmesi önerilen konular</h2><ul class="focus-list">${
+      wrong.map(a=>`<li><b>Soru ${a.q+1}</b> – ${esc(QS[a.q].t)}</li>`).join('')}</ul></div>`;
+  }
+
+  // Kişi bazlı
+  if(S.names.length){
+    const rows=S.names.map(n=>{const xs=S.answers.filter(a=>a.who===n),ok=xs.filter(a=>a.ok).length;return {n,total:xs.length,ok}});
+    h+=`<div class="card section"><h2>Katılımcı bazlı sonuçlar</h2><div class="table-scroll"><table>
+      <thead><tr><th>Katılımcı</th><th class="num">Soru</th><th class="num">Doğru</th><th class="num">Yanlış</th><th class="num">Başarı</th></tr></thead><tbody>${
+      rows.map(r=>`<tr><td>${esc(r.n)}</td><td class="num">${r.total}</td><td class="num">${r.ok}</td><td class="num">${r.total-r.ok}</td><td class="num">${r.total?'%'+pct(r.ok,r.total):'–'}</td></tr>`).join('')
+    }</tbody></table></div></div>`;
+  }
+
+  // Soru bazlı
+  const byQ=new Map(S.answers.map(a=>[a.q,a]));
+  h+=`<div class="card section"><h2>Soru bazlı sonuçlar</h2><div class="table-scroll"><table>
+    <thead><tr><th>No</th><th>Konu</th>${S.names.length?'<th>Cevaplayan</th>':''}<th>Verilen cevap</th><th>Doğru cevap</th><th>Sonuç</th></tr></thead><tbody>${
+    QS.map((q,i)=>{const a=byQ.get(i);
+      return `<tr><td>${i+1}</td><td>${esc(q.t)}</td>${S.names.length?`<td>${a?esc(a.who):''}</td>`:''}
+        <td>${a?esc(givenText(q,a)):'<span class="muted">–</span>'}</td>
+        <td>${esc(answerText(q))}</td>
+        <td>${a?(a.ok?'<span class="tag ok">Doğru</span>':'<span class="tag bad">Yanlış</span>'):'<span class="tag na">Sorulmadı</span>'}</td></tr>`}).join('')
+  }</tbody></table></div></div>`;
+
+  $('#r-body').innerHTML=h;
+}
+
+function exportCSV(){
+  const st=stats(S);
+  const rows=[
+    ['Eğitim',S.title],['Eğitimci',S.trainer],['Birim',S.unit],['Tarih',fmtDate(S.date)],['Oturum türü',TYPE_LABEL[S.type]],
+    ['Katılımcı sayısı',S.count],['Hedef personel',S.target??''],['Sorulan soru',st.total],['Doğru',st.ok],['Yanlış',st.bad],['Başarı %',st.rate],[],
+    ['No','Konu','Soru','Cevaplayan','Verilen cevap','Doğru cevap','Sonuç']
+  ];
+  const byQ=new Map(S.answers.map(a=>[a.q,a]));
+  QS.forEach((q,i)=>{const a=byQ.get(i);rows.push([i+1,q.t,q.q,a?a.who:'',a?givenText(q,a):'',answerText(q),a?(a.ok?'Doğru':'Yanlış'):'Sorulmadı'])});
+  const csv='﻿'+rows.map(r=>r.map(v=>{v=String(v??'');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(';')).join('\r\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  const a=document.createElement('a');a.href=url;
+  a.download=`${S.title.replace(/[^\p{L}\p{N}]+/gu,'_')}_${S.date||'rapor'}_${S.type}.csv`;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+})();
+</script>
+</body>
+</html>
